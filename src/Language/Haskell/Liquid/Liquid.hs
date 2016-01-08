@@ -155,7 +155,7 @@ solveCs cfg tgt cgi info dc
                        -- , FC.stats   = True
                        }
        ferr s r  = tidyError s <$> result r
-       maybeDefunc b x =  defunc x --  checking defunc if b then defunc x else x 
+       maybeDefunc _b x =  defunc x --  checking defunc if b then defunc x else x 
 
 
 -- writeCGI tgt cgi = {-# SCC "ConsWrite" #-} writeFile (extFileName Cgi tgt) str
