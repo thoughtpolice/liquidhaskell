@@ -249,6 +249,9 @@ import Language.Haskell.Liquid.Misc
 import Language.Haskell.Liquid.UX.Config
 import Data.Default
 
+
+import Prover.Defunctionalize
+
 -----------------------------------------------------------------------------
 -- | Printer ----------------------------------------------------------------
 -----------------------------------------------------------------------------
@@ -1360,6 +1363,8 @@ data Cinfo    = Ci { ci_loc :: !SrcSpan
 instance NFData Cinfo where
   rnf x = seq x ()
 
+instance Defunctionalize Cinfo where
+  defunc x = x
 
 ------------------------------------------------------------------------
 -- | Converting Results To Answers -------------------------------------

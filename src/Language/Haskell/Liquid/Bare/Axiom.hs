@@ -70,14 +70,10 @@ makeAxiom lmap cbs _ _ x
   = case filter ((val x `elem`) . map (dropModuleNames . simplesymbol) . binders) cbs of
     (NonRec v def:_)   -> do vts <- zipWithM (makeAxiomType lmap x) (reverse $ findAxiomNames x cbs) (defAxioms v def)
                              insertAxiom v (val x)
-                             updateLMap lmap x x v
-                             updateLMap lmap (x{val = (symbol . showPpr . getName) v}) x v
                              return ((val x, makeType v), 
                                      (v, makeAssumeType v):vts, defAxioms v def)
     (Rec [(v, def)]:_) -> do vts <- zipWithM (makeAxiomType lmap x) (reverse $ findAxiomNames x cbs) (defAxioms v def)
                              insertAxiom v (val x)
-                             updateLMap lmap x x v -- (reverse $ findAxiomNames x cbs) (defAxioms v def)
-                             updateLMap lmap (x{val = (symbol . showPpr . getName) v}) x v
                              return ((val x, makeType v),
                                      ((v, makeAssumeType v): vts),
                                      defAxioms v def)
@@ -99,25 +95,10 @@ makeAxiom lmap cbs _ _ x
 binders (NonRec x _) = [x]
 binders (Rec xes)    = fst <$> xes
 
-updateLMap :: LogicMap -> LocSymbol -> LocSymbol -> Var -> BareM ()
-updateLMap _ _ _ v | not (isFun $ varType v)
-  = return ()
-  where
-    isFun (FunTy _ _)    = True
-    isFun (ForAllTy _ t) = isFun t
-    isFun  _             = False
-
-updateLMap _ x y vv -- v axm@(Axiom (vv, _) xs _ lhs rhs)
-  = insertLogicEnv (val x) ys (applyArrow (val y) ys)
-  where
-    nargs = dropWhile isClassType $ ty_args $ toRTypeRep $ ((ofType $ varType vv) :: RRType ())
-
-    ys = zipWith (\i _ -> symbol (("x" ++ show i) :: String)) [1..] nargs
 
 makeAxiomType :: LogicMap -> LocSymbol -> Var -> HAxiom -> BareM (Var, Located SpecType)
 makeAxiomType lmap x v (Axiom _ xs _ lhs rhs)
-  = do foldM (\lm x -> (updateLMap lm (dummyLoc $ F.symbol x) (dummyLoc $ F.symbol x) x >> (logicEnv <$> get))) lmap xs
-       return (v, x{val = t})
+  = return (v, x{val = t})
   where
     t   = fromRTypeRep $  tr{ty_res = res, ty_binds = symbol <$> xs}
     tt  = ofType $ varType v
@@ -225,19 +206,9 @@ axiomType s τ = fromRTypeRep $ t{ty_res = res, ty_binds = xs}
     mkApp = F.EApp s . map F.EVar
 
 
--- | Type for uninterpreted function that approximated Haskell function into logic
+-- | Type for uninterpreted function that approximates Haskell function into logic
 ufType :: (F.Reftable r) => Type -> RRType r
-ufType τ = fromRTypeRep $ t{ty_res = res, ty_args = [], ty_binds = [], ty_refts = []}
-  where
-    t    = toRTypeRep $ ofType τ
-    args = dropWhile isClassType $ ty_args t
-    res  = mkType args $ ty_res t
-
-    mkType []     tr = tr
-    mkType (t:ts) tr = arrowType (defunc t) $ mkType ts tr
-
-    defunc (RFun _ tx t _) = arrowType (defunc tx) (defunc t)
-    defunc t               = t
+ufType = ofType
 
 simplesymbol :: CoreBndr -> Symbol
 simplesymbol = symbol . getName

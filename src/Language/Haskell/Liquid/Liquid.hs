@@ -38,6 +38,7 @@ import           Language.Haskell.Liquid.Constraint.Types
 import           Language.Haskell.Liquid.Transforms.Rec
 import           Language.Haskell.Liquid.UX.Annotate (mkOutput)
 
+import           Prover.Defunctionalize
 
 type MbEnv = Maybe HscEnv
 
@@ -132,7 +133,7 @@ prune cfg cbinds tgt info
 
 solveCs :: Config -> FilePath -> CGInfo -> GhcInfo -> Maybe DC.DiffCheck -> IO (Output Doc)
 solveCs cfg tgt cgi info dc
-  = do finfo        <- cgInfoFInfo info cgi tgt
+  = do finfo        <- maybeDefunc (higherOrder cfg) <$> cgInfoFInfo info cgi tgt
        Result r sol <- solve fx finfo
        let names = checkedNames dc
        let warns = logErrors cgi
@@ -154,6 +155,7 @@ solveCs cfg tgt cgi info dc
                        -- , FC.stats   = True
                        }
        ferr s r  = tidyError s <$> result r
+       maybeDefunc b x =  defunc x --  checking defunc if b then defunc x else x 
 
 
 -- writeCGI tgt cgi = {-# SCC "ConsWrite" #-} writeFile (extFileName Cgi tgt) str

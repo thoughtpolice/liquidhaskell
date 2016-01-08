@@ -173,10 +173,7 @@ expandAutoProof inite e it
         cts  <- ae_consts  <$> get
         ds   <- ae_assert  <$> get
         cmb  <- ae_cmb     <$> get
-        lmap <- ae_lmap    <$> get
         e'   <- unANFExpr e
-
-        foldM (\lm x -> (updateLMap lm (dummyLoc $ F.symbol x) x >> (ae_lmap <$> get))) lmap vs'
 
         let (vs, vlits)  = L.partition (`elem` readVars e') $ nub' vs'
         let allvs        = nub'  ((fst . aname <$> ams) ++ cts  ++ vs')
@@ -200,29 +197,6 @@ expandAutoProof inite e it
           traceShow "\nexpandedExpr\n" $ toCore cmb inite sol
 
 nub' = L.nubBy (\v1 v2 -> F.symbol v1 == F.symbol v2)
-
--- TODO: merge this with the Bare.Axiom.hs
-updateLMap :: LogicMap  -> LocSymbol -> Var -> Pr ()
-updateLMap _ _ v | not (isFun $ varType v)
-  = return ()
-  where
-    isFun (FunTy _ _)    = True
-    isFun (ForAllTy _ t) = isFun t
-    isFun  _             = False
-
-updateLMap _ x vv
-  = insertLogicEnv x' ys (applyArrow (val x) ys)
-  where
-    nargs = dropWhile isClassType $ ty_args $ toRTypeRep $ ((ofType $ varType vv) :: RRType ())
-
-    ys = zipWith (\i _ -> symbol (("x" ++ show i) :: String)) [1..] nargs
-    x' = simpleSymbolVar vv
-
-
-insertLogicEnv x ys e
-  = modify $ \be -> be {ae_lmap = (ae_lmap be) {logic_map = M.insert x (LMap x ys e) $ logic_map $ ae_lmap be}}
-
-simpleSymbolVar  x = dropModuleNames $ symbol $ showPpr $ getName x
 
 -------------------------------------------------------------------------------
 ----------------   From Haskell to Prover  ------------------------------------

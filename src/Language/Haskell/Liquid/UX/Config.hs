@@ -31,6 +31,7 @@ data Config = Config {
   , binders        :: [String]   -- ^ set of binders to check
   , noCheckUnknown :: Bool       -- ^ whether to complain about specifications for unexported and unused values
   , notermination  :: Bool       -- ^ disable termination check
+  , higherOrder    :: Bool       -- ^ enables higer order reasoning, by defunctionalization
   , autoproofs     :: Bool       -- ^ automatically construct proofs from axioms
   , nowarnings     :: Bool       -- ^ disable warnings output (only show errors)
   , trustinternals :: Bool       -- ^ type all internal variables with true

@@ -116,6 +116,10 @@ config = cmdArgsMode $ Config {
     = def &= help "Disable Termination Check"
           &= name "no-termination-check"
 
+ , higherOrder
+    = def &= help "enables higher order reasoning, by defunctionalization"
+          &= name "higher-order"
+
  , autoproofs
     = def &= help "Automatically construct proofs from axioms"
           &= name "auto-proofs"
@@ -321,6 +325,7 @@ defConfig = Config { files          = def
                    , binders        = def
                    , noCheckUnknown = def
                    , notermination  = def
+                   , higherOrder    = def
                    , autoproofs     = def
                    , nowarnings     = def
                    , trustinternals = def

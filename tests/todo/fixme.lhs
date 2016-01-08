@@ -1,5 +1,4 @@
 module Zoo where
 
-type Poo = Int
-
-{-@ type Poo = {v:Int |} @-}
+incr :: Int -> Int 
+incr x = x + 1
