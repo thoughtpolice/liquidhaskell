@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -100,7 +101,7 @@ class IsFree a where
         isFree :: Symbol -> a -> Bool
 
 instance (Subable x) => (IsFree x) where
-        isFree x p = x `elem` syms p
+        isFree x p = symVar x `elem` syms p
 
 instance Show (UReft Reft) where
          show = render . pprint

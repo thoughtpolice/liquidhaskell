@@ -65,7 +65,6 @@ import System.IO.Unsafe
 import Prover.Types (Axiom(..), Query(..))
 import qualified Prover.Types as P
 import Prover.Solve (solve)
-import Prover.Defunctionalize
 
 import Debug.Trace (trace)
 import qualified Data.HashSet        as S

@@ -16,7 +16,7 @@ import Var
 
 
 import Language.Fixpoint.Types.Names      (symbolString)
-import Language.Fixpoint.Types
+import Language.Fixpoint.Types      hiding (Var)
 import Language.Fixpoint.Misc       (errorstar)
 
 import Language.Haskell.Liquid.GHC.Misc (dropModuleNames)

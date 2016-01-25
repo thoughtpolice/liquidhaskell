@@ -60,8 +60,6 @@ import Language.Haskell.Liquid.Bare.RefToLogic
 
 import Language.Haskell.Liquid.UX.Errors
 
-import Prover.Defunctionalize
-
 import Debug.Trace (trace)
 
 makeAxiom :: LogicMap -> [CoreBind] -> GhcSpec -> Ms.BareSpec -> LocSymbol

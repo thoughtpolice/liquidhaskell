@@ -1,3 +1,6 @@
+Adding some symVar for now. Get rid of them!
+
+
 Equational Reasoning 
 --------------------
 

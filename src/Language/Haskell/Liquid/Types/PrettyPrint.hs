@@ -35,7 +35,7 @@ import           Text.PrettyPrint.HughesPJ
 import           Language.Fixpoint.Misc
 import           Language.Haskell.Liquid.Misc
 import           Language.Haskell.Liquid.GHC.Misc
-import           Language.Fixpoint.Types       hiding (Error, SrcSpan, Predicate)
+import           Language.Fixpoint.Types       hiding (Error, SrcSpan, Predicate, Var)
 import           Language.Haskell.Liquid.Types hiding (sort)
 
 --------------------------------------------------------------------------------
@@ -315,7 +315,7 @@ ppr_pvar_sort bb p t = ppr_rtype bb p t
 
 ppr_ref :: (OkRT c tv r) => Ref (RType c tv ()) (RType c tv r) -> Doc
 ppr_ref  (RProp ss (RHole s)) = ppRefArgs (fst <$> ss) <+> pprint s
-ppr_ref (RProp ss s) = ppRefArgs (fst <$> ss) <+> pprint (fromMaybe mempty (stripRTypeBase s))
+ppr_ref (RProp ss s) = ppRefArgs (fst <$> ss) <+> (fromMaybe mempty (pprint <$> stripRTypeBase s))
 
 ppRefArgs :: [Symbol] -> Doc
 ppRefArgs [] = empty

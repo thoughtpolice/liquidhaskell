@@ -1,5 +1,15 @@
-module Zoo where
+a :: Int
+a = 0
 
-type Poo = Int
+{-@ b :: { b : Int | a < b } @-}
+b :: Int
+b = 1
 
-{-@ type Poo = {v:Int |} @-}
+{-@
+f :: a : Int -> { b : Int | a < b } -> ()
+@-}
+f :: Int -> Int -> ()
+f _ _ = ()
+
+g :: ()
+g = f a b

@@ -67,7 +67,7 @@ import           Outputable                   (Outputable (..), text, ppr)
 import qualified Outputable                   as Out
 import           DynFlags
 import qualified Text.PrettyPrint.HughesPJ    as PJ
-import           Language.Fixpoint.Types      hiding (L, Loc (..), SrcSpan, Constant, SESearch (..))
+import           Language.Fixpoint.Types      hiding (Var, L, Loc (..), SrcSpan, Constant, SESearch (..))
 import           Language.Fixpoint.Misc       (safeHead, safeLast, safeInit)
 import           Language.Haskell.Liquid.Desugar710.HscMain
 import           Control.DeepSeq

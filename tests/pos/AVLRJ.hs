@@ -6,7 +6,7 @@
 module AVL (Tree, empty, singleton, insert) where
 
 -- Basic functions
-data Tree a = Nil | Tree { key :: a, l::Tree a, r :: Tree a} deriving Show
+data Tree a = Nil | Tree { key :: a, l::Tree a, r :: Tree a} -- deriving Show
 
 {-@ data Tree [ht] a = Nil
                      | Tree { key :: a
@@ -64,8 +64,8 @@ insL a (Tree v l r)
 {-@ insR :: x:a -> s:{AVLTree a | key s < x && ht s > 0} -> {t: AVLTree a | PostInsert s t } @-}
 insR a (Tree v l r)
   | siblDiff == 2 && br' == 1  = rebalanceRL v l r'
-  | siblDiff == 2 && br' == -1  = rebalanceRR v l r'
-  | siblDiff <= 1            = Tree v l r'
+  | siblDiff == 2 && br' == -1 = rebalanceRR v l r'
+  | siblDiff <= 1              = Tree v l r'
   where
     siblDiff                 = htDiff r' l
     r'                       = insert a r
@@ -84,6 +84,8 @@ rebalanceRR v l (Tree rv rl rr)                 = Tree rv (Tree v l rl) rr
 {-@ rebalanceRL :: x:a -> l: AVLL a x -> r:{AVLR a x | LeftHeavy r && HtDiff r l 2} -> {t: AVLTree a | EqHt t r } @-}
 rebalanceRL v l (Tree rv (Tree rlv rll rlr) rr) = Tree rlv (Tree v l rll) (Tree rv rlr rr)
 
+{-
+
 -- Test
 main = do
     mapM_ print [a,b,c,d]
@@ -92,6 +94,7 @@ main = do
     b = insert 2 a
     c = insert 3 b
     d = insert 7 c
+-}
 
 -- Liquid Haskell
 

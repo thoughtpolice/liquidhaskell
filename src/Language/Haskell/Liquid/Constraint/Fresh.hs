@@ -37,9 +37,9 @@ instance Freshable m Integer => Freshable m [Expr] where
 instance Freshable m Integer => Freshable m Reft where
   fresh                = errorstar "fresh Reft"
   true    (Reft (v,_)) = return $ Reft (v, mempty)
-  refresh (Reft (_,_)) = (Reft .) . (,) <$> freshVV <*> fresh
+  refresh (Reft (v,_)) = (Reft .) . (,) <$> (freshVV v) <*> fresh
     where
-      freshVV          = vv . Just <$> fresh
+      freshVV v        = (\x -> mapVarSymbol (const x) v) <$> (vv . Just <$> fresh)
 
 instance Freshable m Integer => Freshable m RReft where
   fresh             = errorstar "fresh RReft"
@@ -67,17 +67,14 @@ trueRefType (RAllT α t)
 trueRefType (RAllP π t)
   = RAllP π <$> true t
 
-trueRefType (RFun _ t t' _)
-  = rFun <$> fresh <*> true t <*> true t'
-
-trueRefType (RApp c ts _  _) | isClass c
-  = rRCls c <$> mapM true ts
+trueRefType (RFun _ t t' r)
+  = RFun <$> fresh <*> true t <*> true t' <*> true r 
 
 trueRefType (RApp c ts rs r)
   = RApp c <$> mapM true ts <*> mapM trueRef rs <*> true r
 
-trueRefType (RAppTy t t' _)
-  = RAppTy <$> true t <*> true t' <*> return mempty
+trueRefType (RAppTy t t' r)
+  = RAppTy <$> true t <*> true t' <*> true r 
 
 trueRefType (RVar a r)
   = RVar a <$> true r
@@ -86,7 +83,7 @@ trueRefType (RAllE y ty tx)
   = do y'  <- fresh
        ty' <- true ty
        tx' <- true tx
-       return $ RAllE y' ty' (tx' `subst1` (y, EVar y'))
+       return $ RAllE y' ty' (tx' `subst1` (symVar y, EVar $ symVar y')) -- NV THIS IS A HACK!
 
 trueRefType (RRTy e o r t)
   = RRTy e o r <$> trueRefType t
@@ -108,12 +105,9 @@ refreshRefType (RAllT α t)
 refreshRefType (RAllP π t)
   = RAllP π <$> refresh t
 
-refreshRefType (RFun b t t' _)
-  | b == dummySymbol = rFun <$> fresh <*> refresh t <*> refresh t'
-  | otherwise        = rFun     b     <$> refresh t <*> refresh t'
-
-refreshRefType (RApp rc ts _ _) | isClass rc
-  = return $ rRCls rc ts
+refreshRefType (RFun b t t' r)
+  | b == dummySymbol = RFun <$> fresh <*> refresh t <*> refresh t' <*> refresh r
+  | otherwise        = RFun     b     <$> refresh t <*> refresh t' <*> refresh r
 
 refreshRefType (RApp rc ts rs r)
   = RApp rc <$> mapM refresh ts <*> mapM refreshRef rs <*> refresh r
@@ -128,7 +122,7 @@ refreshRefType (RAllE y ty tx)
   = do y'  <- fresh
        ty' <- refresh ty
        tx' <- refresh tx
-       return $ RAllE y' ty' (tx' `subst1` (y, EVar y'))
+       return $ RAllE y' ty' (tx' `subst1` (symVar y, EVar $ symVar y'))
 
 refreshRefType (RRTy e o r t)
   = RRTy e o r <$> refreshRefType t

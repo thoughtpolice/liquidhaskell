@@ -67,6 +67,7 @@ Executable liquid
                , liquid-fixpoint >= 0.6.1 && < 0.7
                -- , ghc-options >= 0.2
                , located-base
+               , semigroups
                , prover
                , liquidhaskell
 
@@ -87,6 +88,7 @@ Executable lhi
                , prover
                , liquidhaskell
                , network
+               , semigroups
                , directory
                , unix
                , daemons
@@ -131,6 +133,7 @@ Library
                 , unordered-containers >= 0.2 && < 0.3
                 , liquid-fixpoint >= 0.6 && < 0.7
                 , located-base
+                , semigroups
                 , prover
                --  , ghc-options >= 0.2
                 , aeson >= 0.8 && < 0.11
