@@ -34,11 +34,14 @@ axiomatize q = do d <- q
 axiomatizeOne :: [(Name, Type)] -> Dec -> Q [Dec]
 axiomatizeOne env f@(FunD name cs)
   = do axioms <- makeAxioms (lookup name env) name cs
+       return $ f:axioms 
+axiomatizeOne env f@(ValD (VarP name) bd [])
+  = do axioms <- makeAxioms (lookup name env) name [Clause [] bd []]
        return $ f:axioms
 axiomatizeOne _ (SigD _ _)
   = return []
-axiomatizeOne _ d
-  = error $ "axiomatizeOne: Cannot axiomatize" ++ show d
+axiomatizeOne env d
+  = error $ "axiomatizeOne: Cannot axiomatize" ++ show d ++ "\n\n" ++ show env 
 
 makeAxioms :: Maybe Type -> Name -> [Clause] -> Q [Dec]
 makeAxioms t f cs = concat <$> mapM go cs
@@ -120,9 +123,10 @@ axiom_body = [|Proof|]
 
 sep = "_"
 mkSep :: [String] -> String
-mkSep []  = []
-mkSep [x] = x
+mkSep []     = []
+mkSep [x]    = x
 mkSep (x:xs) = x ++ sep ++ mkSep xs
+
 
 eq  = "is"
 makeName fname x dc

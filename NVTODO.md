@@ -14,8 +14,14 @@ tests
   - [OK] MapFusion
   - [OK] ConcatMap
   - [OK] Monadic Laws for Lists 
+  - [OK] Monoid
+  - [HERE] Functors 
   - Associativity of Monadic Laws 
+      - How do we allow FunctionAbstraction
+      - How do we prove f x = map g x <=> f = map . g 
       - allow functions
+      - Question: How do I reconstruct functions? 
+            Replace functions with variables in the Haskell level! 
       - proove it by hand
 
 
