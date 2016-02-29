@@ -194,8 +194,8 @@ addCGEnv tx γ (_, x, t') = do
             else return []
   return $ γ' { fenv = insertsFEnv (fenv γ) is }
 
-rTypeSortedReft' pflag γ
-  | pflag     = pruneUnsortedReft (feEnv $ fenv γ) . f
+rTypeSortedReft' _pflag γ
+--   | pflag     = pruneUnsortedReft (feEnv $ fenv γ) . f
   | otherwise = f
   where
     f         = rTypeSortedReft (emb γ)

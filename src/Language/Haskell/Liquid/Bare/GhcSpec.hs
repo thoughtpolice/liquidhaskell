@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts         #-}
+  {-# LANGUAGE FlexibleContexts         #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE RecordWildCards           #-}
 {-# LANGUAGE ViewPatterns              #-}
@@ -35,7 +35,7 @@ import qualified Data.List           as L
 import qualified Data.HashMap.Strict as M
 import qualified Data.HashSet        as S
 
-import Language.Fixpoint.Misc (thd3, traceShow)
+import Language.Fixpoint.Misc (thd3)
 import Language.Fixpoint.Types.Names (nilName, consName)
 import Language.Fixpoint.Types hiding (Error)
 
@@ -63,7 +63,7 @@ import Language.Haskell.Liquid.Bare.RTEnv
 import Language.Haskell.Liquid.Bare.Spec
 import Language.Haskell.Liquid.Bare.SymSort
 import Language.Haskell.Liquid.Bare.RefToLogic
-import Language.Haskell.Liquid.Bare.Lookup (lookupGhcTyCon)
+import Language.Haskell.Liquid.Bare.Lookup (lookupGhcTyCon, lookupGhcVar)
 
 --------------------------------------------------------------------------------
 makeGhcSpec :: Config
@@ -154,8 +154,9 @@ makeGhcSpec' cfg cbs vars defVars exports specs
 
 addProofType :: GhcSpec -> BareM GhcSpec
 addProofType spec
-  = do tycon <- (Just <$> (lookupGhcTyCon $ dummyLoc proofTyConName)) `catchError` (\_ -> return Nothing)
-       return $ spec {proofType = (`TyConApp` []) <$> tycon}
+  = do tycon <- (Just <$> (lookupGhcTyCon $ dummyLoc proofTyConName   )) `catchError` (\_ -> return Nothing)
+       cmp   <- (Just <$> (lookupGhcVar   $ dummyLoc combineProofsName)) `catchError` (\_ -> return Nothing)
+       return $ spec {proofType = ((`TyConApp` []) <$> tycon, cmp)}
 
 
 makeExactDataCons :: ModName -> Bool -> [Var] -> GhcSpec -> BareM GhcSpec
@@ -199,7 +200,7 @@ makeAxioms tce cbs spec sp
                      , logicMap = lmap' }
 
 emptySpec     :: Config -> GhcSpec
-emptySpec cfg = SP [] [] [] [] [] [] [] [] [] mempty [] [] [] [] mempty mempty mempty cfg mempty [] mempty mempty [] mempty Nothing
+emptySpec cfg = SP [] [] [] [] [] [] [] [] [] mempty [] [] [] [] mempty mempty mempty cfg mempty [] mempty mempty [] mempty (Nothing, Nothing)
 
 
 makeGhcSpec0 cfg defVars exports name sp

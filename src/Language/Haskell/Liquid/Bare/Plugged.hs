@@ -27,9 +27,9 @@ import qualified Data.HashMap.Strict as M
 
 import Language.Fixpoint.Types.Names (dummySymbol)
 import Language.Fixpoint.Types (mapPredReft, pAnd, conjuncts, TCEmb)
--- import Language.Fixpoint.Types (traceFix, showFix)
+import qualified Language.Fixpoint.Types as F 
 
-import Language.Haskell.Liquid.GHC.Misc (sourcePos2SrcSpan)
+import Language.Haskell.Liquid.GHC.Misc (sourcePos2SrcSpan, typeUniqueString)
 import Language.Haskell.Liquid.Types.RefType (addTyConInfo, ofType, rVar, rTyVar, subts, toType, uReft)
 import Language.Haskell.Liquid.Types
 import Language.Haskell.Liquid.Types.Errors (panic, impossible)
@@ -37,6 +37,10 @@ import Language.Haskell.Liquid.Misc (zipWithDefM)
 
 import Language.Haskell.Liquid.Bare.Env
 import Language.Haskell.Liquid.Bare.Misc
+
+import Data.Maybe (fromMaybe)
+import qualified Data.List as L 
+
 
 makePluggedSigs name embs tcEnv exports sigs
   = forM sigs $ \(x,t) -> do
@@ -70,7 +74,7 @@ plugHoles tce tyi x f t (Loc l l' st)
            st''' = subts su st''
            ps'   = fmap (subts su') <$> ps
            su'   = [(y, RVar (rTyVar x) ()) | (x, y) <- tyvsmap] :: [(RTyVar, RSort)]
-       Loc l l' . mkArrow αs ps' (ls1 ++ ls2) [] . makeCls cs' <$> go rt' st'''
+       Loc l l' . mkArrow αs ps' (ls1 ++ ls2) [] . fmap (fmap (substvsref tyvsmap)) . makeCls cs' <$> go rt' st'''
   where
     (αs, _, ls1, rt)  = bkUniv (ofType t :: SpecType)
     (cs, rt')         = bkClass rt
@@ -112,6 +116,36 @@ plugHoles tce tyi x f t (Loc l l' st)
     go _                st                 = return st
 
     makeCls cs t              = foldr (uncurry rFun) t cs
+
+
+substvsref tvs' (F.Reft (v, p)) = F.Reft (v, go p)
+  where
+    tvs = [(F.symbol y, F.symbol $ typeUniqueString x) | (x, y)<- tvs']
+
+    go (F.ELam f (x, t) e) = F.ELam f (x, go' t) $ go e 
+    go (F.EApp e1 e2)    = F.EApp (go e1) (go e2)
+    go (F.ENeg e)        = F.ENeg $ go e 
+    go (F.EBin b e1 e2)  = F.EBin b (go e1) (go e2)
+    go (F.EIte e1 e2 e3) = F.EIte (go e1) (go e2) (go e3)
+    go (F.ECst e s)      = F.ECst (go e) (go' s)
+    go (F.ETApp e s)     = F.ETApp (go e) (go' s)
+    go (F.ETAbs e s)     = F.ETAbs (go e) s 
+    go (F.PAnd es)       = F.PAnd (go <$> es)
+    go (F.POr  es)       = F.POr  (go <$> es)
+    go (F.PNot e)        = F.PNot (go e)
+    go (F.PIff e1 e2)    = F.PIff (go e1) (go e2)
+    go (F.PImp e1 e2)    = F.PImp (go e1) (go e2)
+    go (F.PAtom b e1 e2) = F.PAtom b (go e1) (go e2)
+    go (F.PAll bs e)     = F.PAll   ((\(x, s) -> (x, go' s)) <$> bs) (go e)
+    go (F.PExist bs e)   = F.PExist ((\(x, s) -> (x, go' s)) <$> bs) (go e)
+    go e                 = e 
+
+    go' (F.FObj  s)     = F.FObj $ fromMaybe s (L.lookup s tvs) 
+    go' (F.FFunc s1 s2) = F.FFunc (go' s1) (go' s2)
+    go' (F.FAbs i s)    = F.FAbs i $ go' s 
+    go' (F.FApp s1 s2)  = F.FApp (go' s1) (go' s2)
+    go'  t              = t 
+
 
 addRefs :: TCEmb TyCon
      -> M.HashMap TyCon RTyCon

@@ -62,7 +62,7 @@ dictionaryBind = Rec [(v, Lam a $ App (Var v) (Type $ TyVarTy a))]
 -----------------------------------------------------------------------
 
 
-combineProofsName :: String
+combineProofsName :: Symbol
 combineProofsName = "combineProofs"
 
 proofTyConName :: Symbol

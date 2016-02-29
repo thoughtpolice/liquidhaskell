@@ -220,7 +220,7 @@ coreToLg (C.Case e b _ alts) | eqType (varType b) boolTy
 coreToLg (C.Lam x e)
   = do p   <- coreToLg e
        tce <- ltce <$> getState 
-       return $ ELam (symbol x, typeSort tce $ varType x) p
+       return $ ELam Nothing (symbol x, typeSort tce $ varType x) p
 -- coreToLg p@(C.App _ _) = toPredApp p
 coreToLg e                   = throw ("Cannot transform to Logic:\t" ++ showPpr e)
 

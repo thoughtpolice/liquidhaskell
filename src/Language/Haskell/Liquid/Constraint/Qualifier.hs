@@ -24,7 +24,7 @@ import Data.List                (delete, nub)
 import Data.Maybe               (catMaybes, fromMaybe)
 import qualified Data.HashSet as S
 -- import Data.Bifunctor           (second)
-import Debug.Trace
+import Debug.Trace (trace)
 
 -----------------------------------------------------------------------------------
 specificationQualifiers :: Int -> GhcInfo -> SEnv Sort -> [Qualifier]

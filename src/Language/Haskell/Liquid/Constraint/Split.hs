@@ -341,11 +341,11 @@ splitC (SubC _ t1 t2)
   = panic Nothing $ "(Another Broken Test!!!) splitc unexpected:\n" ++ showpp t1 ++ "\n  <:\n" ++ showpp t2
 
 splitC (SubR γ o r)
-  = do fg     <- pruneRefs <$> get
-       let r1' = if fg then pruneUnsortedReft γ'' r1 else r1
+  = do _fg     <- pruneRefs <$> get
+       let r1' = r1 -- if fg then pruneUnsortedReft γ'' r1 else r1
        return $ F.subC γ' r1' r2 Nothing tag ci
   where
-    γ'' = feEnv $ fenv γ
+    -- γ'' = feEnv $ fenv γ
     γ'  = feBinds $ fenv γ
     r1  = F.RR F.boolSort rr
     r2  = F.RR F.boolSort $ F.Reft (vv, F.EVar vv)

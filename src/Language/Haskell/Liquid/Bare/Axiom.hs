@@ -72,7 +72,7 @@ makeAxiom tce lmap cbs _ _ x
                                  updateLMap lmap x x v
                                  updateLMap lmap (x{val = (symbol . showPpr . getName) v}) x v
                                  return ((val x, makeType v),
-                                         (v, makeAssumeType v):vts, defAxioms v def)
+                                         ((v, makeAssumeType v):vts), defAxioms v def)
         (Rec [(v, def)]:_) -> do vts <- zipWithM (makeAxiomType tce lmap x) (reverse $ findAxiomNames x cbs) (defAxioms v def)
                                  insertAxiom v (val x)
                                  updateLMap lmap x x v -- (reverse $ findAxiomNames x cbs) (defAxioms v def)
@@ -99,8 +99,8 @@ binders (NonRec x _) = [x]
 binders (Rec xes)    = fst <$> xes
 
 updateLMap :: LogicMap -> LocSymbol -> LocSymbol -> Var -> BareM ()
-updateLMap _ _ _ v | not (isFun $ varType v)
-  = return ()
+updateLMap _ x y v | not (isFun $ varType v)
+  = insertLogicEnv (val x) [] (F.EVar $ val y)
   where
     isFun (FunTy _ _)    = True
     isFun (ForAllTy _ t) = isFun t

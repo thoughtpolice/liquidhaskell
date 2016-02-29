@@ -90,7 +90,7 @@ import Language.Haskell.Liquid.Types.PredType         hiding (freeTyVars)
 import Language.Haskell.Liquid.Types.Meet
 import Language.Haskell.Liquid.GHC.Misc          ( isInternal, collectArguments, tickSrcSpan
                                                  , hasBaseTypeVar, showPpr, isDataConId
-                                                 , symbolFastString, stringVar, stringTyVar)
+                                                 , symbolFastString, stringVar, stringTyVar, isInternal)
 import Language.Haskell.Liquid.Misc
 import Language.Fixpoint.Misc
 import Language.Haskell.Liquid.Types.Literals
@@ -113,10 +113,10 @@ generateConstraints info = {-# SCC "ConsGen" #-} execState act $ initCGI cfg inf
 
 consAct :: GhcInfo -> CG ()
 consAct info
-  = do γ'    <- initEnv      info
+  = do γ     <- initEnv      info
        sflag <- scheck   <$> get
        tflag <- trustghc <$> get
-       γ     <- if expandProofsMode then addCombine τProof γ' else return γ'
+       -- γ     <- if expandProofsMode then addCombine τProof γ' else return γ'
        cbs'  <- if expandProofsMode then mapM (expandProofs info (mkSigs γ)) $ cbs info else return $ cbs info
        let trustBinding x = tflag && (x `elem` derVars info || isInternal x)
        foldM_ (consCBTop trustBinding) γ cbs'
@@ -134,13 +134,13 @@ consAct info
        modify $ \st -> st { fEnv = fixEnv γ, fixCs = fcs , fixWfs = fws , annotMap = annot'}
   where
     expandProofsMode = autoproofs $ config $ spec info
-    τProof           = proofType $ spec info
+    -- τProof           = proofType $ spec info
     fixEnv           = feEnv . fenv
     mkSigs γ         = toListREnv (renv  γ) ++
                        toListREnv (assms γ) ++
                        toListREnv (grtys γ)
 
-
+{- 
 addCombine τ γ
   = do t <- trueTy combineType
        γ ++= ("combineProofs", combineSymbol, t)
@@ -148,6 +148,7 @@ addCombine τ γ
     combineType   = makeCombineType τ
     combineVar    = makeCombineVar  combineType
     combineSymbol = F.symbol combineVar
+-} 
 
 ------------------------------------------------------------------------------------
 initEnv :: GhcInfo -> CG CGEnv
@@ -1000,15 +1001,16 @@ consE γ e'@(App e a)
        updateLocA {- πs -}  (exprLoc e) te''
        let RFun x tx t _ = checkFun ("Non-fun App with caller ", e') te''
        pushConsBind      $ cconsE γ' a tx
-       addPost γ'        $ maybe (checkUnbound γ' e' x t a) (F.subst1 t . (x,)) (argExpr γ a)
-       {- 
+ --       addPost γ'        $ maybe (checkUnbound γ' e' x t a) (F.subst1 t . (x,)) (argExpr γ a)
+ 
        tt <- addPost γ'        $ maybe (checkUnbound γ' e' x t a) (F.subst1 t . (x,)) (argExpr γ a)
-       let rr = case (argExpr γ e, argExpr γ a) of 
-                 (Just e', Just a') -> uTop $ F.Reft (F.vv_, F.PAtom F.Eq (F.EVar F.vv_) (F.EApp e' a'))
-                 _                  -> mempty
-       return $ tt `strengthen` rr 
-       -}
-
+       let rr = if isClassType tx 
+                 then  mempty
+                 else 
+                  case (argExprExt γ e, argExprExt γ a) of 
+                   (Just e', Just a') -> uTop $ F.Reft (F.vv_, F.PAtom F.Eq (F.EVar F.vv_) (F.EApp e' a'))
+                   _                  -> mempty
+       return (tt `strengthen` rr)
 
 consE γ (Lam α e) | isTyVar α
   = liftM (RAllT (rTyVar α)) (consE γ e)
@@ -1274,10 +1276,30 @@ freshPredRef _ _ (PV _ PVHProp _ _)
 --------------------------------------------------------------------------------
 
 argExpr :: CGEnv -> CoreExpr -> Maybe F.Expr
-argExpr _ (Var vy)    = Just $ F.eVar vy
+argExpr γ (Var vy)    = case (M.lookup vy $ aenv γ) of
+                           Just v -> Just $ F.EVar v   
+                           _      -> Just $ F.eVar vy
 argExpr γ (Lit c)     = snd  $ literalConst (emb γ) c
 argExpr γ (Tick _ e)  = argExpr γ e
+argExpr γ (App e (Type _))  = argExpr γ e
+argExpr γ (App e1 e2) = do l1 <- argExpr γ e1 
+                           l2 <- argExpr γ e2 
+                           return $ F.EApp l1 l2 
 argExpr _ _           = Nothing
+
+
+argExprExt :: CGEnv -> CoreExpr -> Maybe F.Expr
+argExprExt _ (Var x) | isClassPred $ varType x = Nothing
+argExprExt γ (Var vy)    = case (M.lookup vy $ aenv γ) of
+                           Just v -> Just $ F.EVar v   
+                           _      -> Just $ F.eVar vy
+argExprExt γ (Lit c)     = snd  $ literalConst (emb γ) c
+argExprExt γ (Tick _ e)  = argExprExt γ e
+argExprExt γ (App e (Type _))  = argExprExt γ e
+argExprExt γ (App e1 e2) = do l1 <- argExprExt γ e1 
+                              l2 <- argExprExt γ e2 
+                              return $ F.EApp l1 l2 
+argExprExt _ _           = Nothing
 
 
 --------------------------------------------------------------------------------
@@ -1320,6 +1342,7 @@ strengthenS (RApp c ts rs r) r'  = RApp c ts rs $ topMeet r r'
 strengthenS (RVar a r) r'        = RVar a       $ topMeet r r'
 strengthenS (RFun b t1 t2 r) r'  = RFun b t1 t2 $ topMeet r r'
 strengthenS (RAppTy t1 t2 r) r'  = RAppTy t1 t2 $ topMeet r r'
+-- strengthenS (RAllT a t) r'       = RAllT a $ strengthenS t r'
 strengthenS t _                  = t
 
 topMeet :: (PPrint r, F.Reftable r) => r -> r -> r

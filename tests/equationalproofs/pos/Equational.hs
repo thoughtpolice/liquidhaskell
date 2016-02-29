@@ -4,7 +4,6 @@ module Equational where
 import Language.Haskell.Liquid.Prelude
 import Axiomatize
 
-
 {-@ toProof :: l:a -> r:{a | l == r} -> {v:Proof | l == r } @-}
 toProof :: a -> a -> Proof
 toProof x y = Proof

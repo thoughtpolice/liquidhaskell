@@ -236,8 +236,8 @@ ppAllExpr bb p t
           split zs t                = (reverse zs, t)
 
 ppReftPs _ _ rs
-  | all isTauto rs   = empty
-  | not (ppPs ppEnv) = empty
+--   | all isTauto rs   = empty
+--   | not (ppPs ppEnv) = empty
   | otherwise        = angleBrackets $ hsep $ punctuate comma $ ppr_ref <$> rs
 
 -- ppr_dbind :: (RefTypable p c tv (), RefTypable p c tv r) => Bool -> Prec -> Symbol -> RType p c tv r -> Doc
@@ -268,9 +268,9 @@ ppr_forall bb p t = maybeParen p FunPrec $ sep [
     trep          = toRTypeRep t
     (cls, t')     = bkClass $ fromRTypeRep $ trep {ty_vars = [], ty_preds = [], ty_labels = []}
 
-    ppr_foralls False _ _  _  = empty
-    ppr_foralls _    [] [] [] = empty
-    ppr_foralls True αs πs ss = text "forall" <+> dαs αs <+> dπs (ppPs bb) πs <+> ppr_symbols ss <> dot
+    -- ppr_foralls False _ _  _  = empty
+    -- ppr_foralls _    [] [] [] = empty
+    ppr_foralls _ αs πs ss = text "forall" <+> dαs αs <+> dπs (ppPs bb) πs <+> ppr_symbols ss <> dot
 
     ppr_clss []               = empty
     ppr_clss cs               = (parens $ hsep $ punctuate comma (uncurry (ppr_cls bb p) <$> cs)) <+> text "=>"

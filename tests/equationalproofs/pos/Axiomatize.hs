@@ -15,6 +15,18 @@ import Data.Maybe (fromMaybe)
 
 data Proof = Proof
 
+{-@ assume axiom_abstract :: f:(a -> b) -> g:(a -> b) -> (x:a -> {v:Proof | f x == g x}) -> {v:Proof | f = g}
+  @-}
+axiom_abstract :: (a -> b) -> (a -> b) -> (a -> Proof) -> Proof
+axiom_abstract f g p = Proof 
+
+
+{-@ combineProofs  :: forall <p :: Proof -> Prop, q :: Proof -> Prop, r :: Proof -> Prop>.
+                 {vp::Proof<p> |- Proof<q> <: Proof<r> }
+                 Proof<p> -> Proof<q> -> Proof<r>
+@-}
+combineProofs :: Proof -> Proof -> Proof
+combineProofs _ r = r
 
 {-@ auto :: Int -> b:{v:Bool |Prop v} -> Proof @-}
 auto :: Int -> Bool -> Proof

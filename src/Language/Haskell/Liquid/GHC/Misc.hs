@@ -421,8 +421,11 @@ instance Fixpoint Type where
 instance Show Name where
   show = showPpr
 
+-- instance Show Var where
+--   show = showPpr
+
 instance Show Var where
-  show = showPpr
+  show = show . tvId 
 
 instance Show Class where
   show = showPpr

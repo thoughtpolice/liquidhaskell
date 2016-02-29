@@ -19,7 +19,6 @@ module Language.Haskell.Liquid.Constraint.Axioms (
     expandProofs
 
     -- * Combining proofs
-  , makeCombineType
   , makeCombineVar
 
   ) where
@@ -31,6 +30,7 @@ import Literal
 
 import Coercion
 import DataCon
+import CoreUtils (exprType)
 import CoreSyn
 import Type
 import TyCon
@@ -189,10 +189,15 @@ expandAutoProof inite e it
         env    <- makeEnvironment ((L.\\) allvs usedVs) ((L.\\) vlits usedVs)
         ctors  <- mapM makeCtor cts'
         pvs    <- mapM makeVar usedVs
-        le     <- makeGoalPredicate e'
+        let cst = grapConstants e' 
+        (fs, g) <- grapLambdas e' 
+        fds    <- mapM makeFunAxiom fs 
+        fctors <- mapM makeFunCTor fs 
+        le     <- makeGoalPredicate g 
         fn     <- freshFilePath
         axioms <- makeAxioms
-        let sol = unsafePerformIO (solve $ makeQuery fn it isHO le axioms ctors ds env pvs)
+        n      <- getUniq
+        let sol = unsafePerformIO (solve $ makeQuery fn it isHO le axioms (ctors ++ fctors) (ds ++fds) env pvs cst)
         return $ {-
           traceShow (
             "\n\nTo prove\n" ++ show (showpp le) ++
@@ -200,7 +205,9 @@ expandAutoProof inite e it
             "\n\nExpr =  \n" ++ show (toCore cmb inite sol)         ++
             "\n\n"
            ) $ -}
-          traceShow "\nexpandedExpr\n" $ toCore cmb inite sol
+          traceShow "\nexpandedExpr\n" $ runToCore n cmb inite sol
+
+
 
 nub' = L.nubBy (\v1 v2 -> F.symbol v1 == F.symbol v2)
 
@@ -244,8 +251,8 @@ makeEnvironment avs vs
 
 
 
-makeQuery :: FilePath -> Integer -> Bool -> F.Expr -> [HAxiom] -> [HVarCtor] -> [F.Expr] -> [P.LVar] ->  [HVar] -> HQuery
-makeQuery fn i isHO p axioms cts ds env vs 
+makeQuery :: FilePath -> Integer -> Bool -> F.Expr -> [HAxiom] -> [HVarCtor] -> [F.Expr] -> [P.LVar] ->  [HVar] -> [HConst] -> HQuery
+makeQuery fn i isHO p axioms cts ds env vs cst 
  = Query   { q_depth  = fromInteger i
            , q_goal   = P.Pred p
 
@@ -257,6 +264,7 @@ makeQuery fn i isHO p axioms cts ds env vs
            , q_axioms = axioms
            , q_decls  = (P.Pred <$> ds)
            , q_isHO   = isHO 
+           , q_const  = cst 
            }
 
 checkEnv pv@(P.Var x s _)
@@ -286,6 +294,25 @@ makeGoalPredicate e =
        Left p    -> return p
        Right err -> panicError err
 
+
+makeFunAxiom (f, e) =
+  do lm   <- ae_lmap    <$> get
+     tce  <- ae_emb     <$> get
+     case runToLogic tce lm (ErrOther (showSpan "funAxiom") . text) (coreToPred e) of
+       Left p    -> return $ makeAxiom (F.symbol f) p
+       Right err -> panicError err
+
+
+makeAxiom f p = F.PAll xts (F.PAtom F.Eq (F.eApps (F.EVar f) es) e)
+  where
+    (xts, e) = go p 
+
+    es       = F.EVar . fst <$> xts
+
+    go (F.ELam _ xt e) = let (xts, e') = go e in (xt:xts, e')
+    go e             = ([], e)
+
+
 makeRefinement :: Maybe SpecType -> [Var] -> F.Expr
 makeRefinement Nothing  _ = F.PTrue
 makeRefinement (Just t) xs = rr
@@ -307,14 +334,18 @@ makeCtor c
        lvs  <- ae_vars    <$> get
        return $ makeCtor' tce lmap sigs (c `elem` lvs) c
 
+makeFunCTor (v, e) 
+  = do tce <- ae_emb <$> get 
+       return $ P.VarCtor (P.Var (F.symbol v) (typeSort tce $ varType v) e) [] (P.Pred F.PTrue) 
+
 makeCtor' :: F.TCEmb TyCon -> LogicMap -> [(F.Symbol, SpecType)] -> Bool -> Var -> HVarCtor
 makeCtor' tce _ _ islocal  v | islocal
-  = P.VarCtor (P.Var (F.symbol v) (typeSort tce $ varType v) v) [] (P.Pred F.PTrue)
+  = P.VarCtor (P.Var (F.symbol v) (typeSort tce $ varType v) (Var v)) [] (P.Pred F.PTrue)
 
 makeCtor' tce lmap sigs _  v
   = case M.lookup v (axiom_map lmap) of
-    Nothing -> P.VarCtor (P.Var (F.symbol v) (typeSort tce $ varType v)      v) vs r
-    Just x  -> P.VarCtor (P.Var x            (typeSort tce $ varType v) v) [] (P.Pred F.PTrue)
+    Nothing -> P.VarCtor (P.Var (F.symbol v) (typeSort tce $ varType v) (Var v)) vs r
+    Just x  -> P.VarCtor (P.Var x            (typeSort tce $ varType v) (Var v)) [] (P.Pred F.PTrue)
 
   where
     x    = F.symbol v
@@ -331,7 +362,7 @@ makeCtor' tce lmap sigs _  v
 makeVar :: Var -> Pr HVar
 makeVar v = do {tce <- ae_emb <$> get; return $ makeVar' tce v}
 
-makeVar'  tce v = P.Var (F.symbol v) (typeSort tce $ varType v) v
+makeVar'  tce v = P.Var (F.symbol v) (typeSort tce $ varType v) (Var v)
 
 makeLVar :: Var -> Pr P.LVar
 makeLVar v = do {tce <- ae_emb <$> get; return $ makeLVar' tce v}
@@ -444,7 +475,7 @@ initAEEnv info sigs
       isExported = flip elemNameSet (exports $ spec info) . getName
       validVar   = not . canIgnore
       validExp x = validVar x && isExported x
-      by         = makeCombineVar $ makeCombineType τProof
+      by         = makeCombineVar τProof
       τProof     = proofType $ spec info
 
 
@@ -469,6 +500,8 @@ getUniq
   = do modify (\s -> s{ae_index = 1 + (ae_index s)})
        ae_index <$> get
 
+setUnique :: Integer -> Pr ()
+setUnique i =  modify (\s -> s{ae_index = i})
 
 freshVar :: Type -> Pr Var
 freshVar t =
@@ -533,17 +566,76 @@ grapInt (Tick _ e) = grapInt e
 grapInt _          = return 2
 
 
+grapLambdas :: CoreExpr -> Pr ([(Var, CoreExpr)], CoreExpr) 
+grapLambdas e = do n <- getUniq
+                   let (e', (fs, m)) = runState (go e) ([], n)
+                   setUnique m
+                   return (fs, e')
+
+  where
+    go e@(Lam _ _)      = do v <- freshVar (exprType e)
+                             modify $ \(fs, i) -> ((v,e):fs, i)
+                             return $ Var v 
+    go e@(Var _)         = return e 
+    go e@(Lit _)         = return e 
+    go e@(Coercion _)    = return e 
+    go e@(Type _)        = return e 
+    go (Tick t e )       = Tick t   <$> go e  
+    go (Cast e c)        = (`Cast` c) <$> go e  
+    go (App e1 e2)       = App <$> go e1 <*> go e2 
+    go (Let bs ex)       = do ex' <- go ex 
+                              gobind ex' bs 
+    go (Case e x t alts) = (\e' alts' -> Case e' x t alts') <$> go e <*> mapM goalt alts 
+
+
+    gobind ex (NonRec x e)  | isLambda e = do modify $ \(fs, i) -> ((x,e):fs, i)
+                                              return ex 
+                            | otherwise  = (\ex' -> Let (NonRec x ex') ex) <$> go e  
+    gobind ex (Rec xes)     = do xes'    <- mapM (\(x, e) -> (x,) <$> go e) xes
+                                 let (fs, xs) = L.partition (isLambda . snd) xes' 
+                                 modify $ \(fs', i) -> (fs++fs', i)
+                                 return $ Let (Rec xs) ex  
+
+    goalt (d, xs, e)     = (d, xs,) <$> go e 
+
+    isLambda (Lam _ _)   = True 
+    isLambda _           = False 
+
+    freshVar t =
+      do (fs, i) <- get
+         put (fs, i+1)
+         return $ stringVar ("x" ++ show i) t
+
+grapConstants = go 
+  where
+    go (Var _)           = []
+    -- hack to get back Int intead of Int#
+    go e@(App _ (Lit l)) = case mkLit l of {Just (F.ECon c) -> [P.Const c e]; _ -> [] } 
+    go (Lit l)           = case mkLit l of {Just (F.ECon c) -> [P.Const c (Lit l)]; _ -> [] } 
+    go (App e1 e2)       = go e1 ++ go e2 
+    go (Lam _ e)         = go e 
+    go (Let bs e)        = gobind bs ++ go e 
+    go (Case e _ _ alts) = go e ++ concatMap goalt alts 
+    go (Cast e _)        = go e 
+    go (Tick _ e)        = go e 
+    go (Type _)          = [] 
+    go (Coercion _)      = [] 
+
+    gobind (NonRec _ e)  = go e 
+    gobind (Rec xes)     = concatMap go (snd <$> xes)
+
+    goalt (_, _, e)      = go e 
+
 -------------------------------------------------------------------------------
 --------------------  Combine Proofs  ----------------------------------------
 -------------------------------------------------------------------------------
 
-makeCombineType Nothing
+makeCombineVar (_, Nothing)
   = panic Nothing "proofType not found"
-makeCombineType (Just τ)
-  = FunTy τ (FunTy τ τ)
+makeCombineVar (_, Just v)
+  = v 
 
 
-makeCombineVar τ =  stringVar combineProofsName τ
 -------------------------------------------------------------------------------
 -------------------  Helper Functions  ----------------------------------------
 -------------------------------------------------------------------------------

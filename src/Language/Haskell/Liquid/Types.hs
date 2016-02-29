@@ -327,7 +327,7 @@ data GhcSpec = SP {
   , dicts      :: DEnv Var SpecType              -- ^ Dictionary Environment
   , axioms     :: [HAxiom]                       -- Axioms from axiomatized functions
   , logicMap   :: LogicMap
-  , proofType  :: Maybe Type
+  , proofType  :: (Maybe Type, Maybe Var)
   }
 
 instance HasConfig GhcSpec where
@@ -1643,12 +1643,12 @@ instance Eq ctor => Monoid (MSpec ty ctor) where
 --------------------------------------------------------------------------------
 
 instance PPrint RTyVar where
-  pprint (RTV α)
-   | ppTyVar ppEnv = ppr_tyvar α
-   | otherwise     = ppr_tyvar_short α
+  pprint (RTV α) = ppr_tyvar α
+--    | ppTyVar ppEnv = ppr_tyvar α
+--    | otherwise     = ppr_tyvar_short α
 
 ppr_tyvar       = text . tvId
-ppr_tyvar_short = text . showPpr
+-- ppr_tyvar_short = text . showPpr
 
 instance (PPrint r, Reftable r, PPrint t, PPrint (RType c tv r)) => PPrint (Ref t (RType c tv r)) where
   pprint (RProp ss (RHole s)) = ppRefArgs (fst <$> ss) <+> pprint s

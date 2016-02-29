@@ -5,6 +5,7 @@
 {-@ LIQUID "--autoproofs"      @-}
 {- LIQUID "--totality"        @-}
 {-@ LIQUID "--exact-data-cons" @-}
+{-@ LIQUID "--higherorder" @-}
 
 module ConcatMap where
 
@@ -95,3 +96,5 @@ prop_concatMap f (C x xs)
 llen          :: L a -> Int
 llen N        = 0
 llen (C x xs) = 1 + llen xs
+
+bar = combineProofs

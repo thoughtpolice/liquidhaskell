@@ -2,6 +2,12 @@ Equational Reasoning
 --------------------
 
 
+PIPES 
+ - Proofs: https://github.com/jwiegley/coq-pipes
+ - http://www.haskellforall.com/2013/10/manual-proofs-for-pipes-laws.html
+
+
+
 - look at isabelle's lambda lifting 
 - http://www.concrete-semantics.org/concrete-semantics.pdf
 - http://www.mimuw.edu.pl/~lukaszcz/combs.pdf
@@ -15,7 +21,8 @@ tests
   - [OK] ConcatMap
   - [OK] Monadic Laws for Lists 
   - [OK] Monoid
-  - [HERE] Functors 
+  - [OK] Functors <do something with abstraction>
+  - [HERE] Applicative 
   - Associativity of Monadic Laws 
       - How do we allow FunctionAbstraction
       - How do we prove f x = map g x <=> f = map . g 
@@ -75,3 +82,14 @@ autoEq e1 e2
 
 auto (e1 == e && e == e2)
 -}
+]
+
+
+
+
+
+Daniele: 
+
+- Lol 
+- https://github.com/cpeikert
+- http://web.eecs.umich.edu/~cpeikert/pubs/lol.pdf
