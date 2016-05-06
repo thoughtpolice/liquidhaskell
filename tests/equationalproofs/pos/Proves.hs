@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE TypeFamilies          #-}
-
+{-# LANGUAGE IncoherentInstances   #-}
 module Proves where
 
 
@@ -30,6 +30,9 @@ f ? y = f y
 -- proof :: Bool -> Int -> Bool
 proof :: Int -> Bool
 proof _ = True
+
+gproof :: a -> Proof 
+gproof _ = True 
 
 -- | Comparison operators requiring proof terms
 
@@ -71,18 +74,37 @@ instance (a~b) => OptEq a (Bool -> b) where
   (==!) x _ _ = x
 -}
 
-instance OptEq a (Bool -> a) where
+instance (a~b) => OptEq a (Proof -> b) where
+{-@ instance OptEq a (Bool -> a) where
+  ==! :: x:a -> y:a -> {v:Bool | x == y} -> {v:b | v ~~ x }
+  @-}
+  (==!) x _ _ = x
+
+instance (a~b) => OptEq a b where
+{-@ instance OptEq a b where
+  ==! :: x:a -> y:{a| x == y} -> {v:b | v ~~ x && v ~~ y}
+  @-}
+  (==!) x _ = x
+
+instance OptEq a a where
+{-@ instance OptEq a a where
+  ==! :: x:a -> y:{a| x == y} -> {v:a | v == x && v ==  y}
+  @-}
+  (==!) x _ = x
+
+instance OptEq a (Proof -> a) where
 {-@ instance OptEq a (Bool -> a) where
   ==! :: x:a -> y:a -> {v:Bool | x == y} -> {v:a | v == x }
   @-}
   (==!) x _ _ = x
 
-instance OptEq a a where
-{-@ instance OptEq a a where
-  ==! :: x:a -> y:{a| x == y} -> {v:a | v == x }
+{- 
+instance (a~b) => OptEq a b where
+{-@ instance OptEq a b where
+  ==! :: x:a -> y:{a| x ~~ y} -> {v:b | v ~~ x && v ~~ y}
   @-}
   (==!) x _ = x
-
+-}
 
 
 class OptLEq a r where
