@@ -1551,6 +1551,7 @@ funExpr _ _
 
 untick :: CoreExpr -> CoreExpr
 untick (Tick _ e)  = untick e 
+untick (App e (Type _)) = untick e 
 untick (App e1 e2) = App (untick e1) (untick e2)
 untick e           = e
 

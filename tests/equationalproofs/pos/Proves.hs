@@ -31,8 +31,11 @@ f ? y = f y
 proof :: Int -> Bool
 proof _ = True
 
-gproof :: a -> Proof 
-gproof _ = True 
+{-@ gproof :: forall <p :: a -> Prop, q :: Proof -> Prop>. 
+              {x::a<p> |- Proof <: Proof<q> }
+              a<p> -> Proof<q> @-} 
+toProof :: a -> Proof 
+toProof _ = True 
 
 -- | Comparison operators requiring proof terms
 
@@ -82,7 +85,7 @@ instance (a~b) => OptEq a (Proof -> b) where
 
 instance (a~b) => OptEq a b where
 {-@ instance OptEq a b where
-  ==! :: x:a -> y:{a| x == y} -> {v:b | v ~~ x && v ~~ y}
+  ==! :: x:a -> y:{a| x ~~ y} -> {v:b | v ~~ x && v ~~ y}
   @-}
   (==!) x _ = x
 
